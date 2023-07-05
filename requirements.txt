@@ -1,4 +1,4 @@
-django==3.2.15
+Django==4.2.3
 django-debug-toolbar==3.2.1
 Pillow==10.0.0
 environs[django]==9.3.2
