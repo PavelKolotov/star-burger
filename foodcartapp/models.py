@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from phonenumber_field.modelfields import PhoneNumberField
 
 
 class Restaurant(models.Model):
@@ -79,7 +80,7 @@ class Product(models.Model):
     )
     description = models.TextField(
         'описание',
-        max_length=200,
+        max_length=300,
         blank=True,
     )
 
@@ -97,7 +98,7 @@ class RestaurantMenuItem(models.Model):
     restaurant = models.ForeignKey(
         Restaurant,
         related_name='menu_items',
-        verbose_name="ресторан",
+        verbose_name='ресторан',
         on_delete=models.CASCADE,
     )
     product = models.ForeignKey(
@@ -121,3 +122,54 @@ class RestaurantMenuItem(models.Model):
 
     def __str__(self):
         return f"{self.restaurant.name} - {self.product.name}"
+
+
+class Order(models.Model):
+    firstname = models.CharField(
+        'Имя',
+        max_length=20
+    )
+    lastname = models.CharField(
+        'Имя',
+        max_length=20
+    )
+    address = models.CharField(
+        'адрес',
+        max_length=100
+    )
+    phonenumber = PhoneNumberField(
+        'контактный телефон'
+    )
+    products = models.ManyToManyField(Product, through='OrderItem')
+
+    class Meta:
+        verbose_name = 'заказ'
+        verbose_name_plural = 'заказы'
+
+    def __str__(self):
+        return f'Order #{self.id}: {self.firstname} {self.lastname} - {self.address}'
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(
+        Order,
+        related_name='order_items',
+        verbose_name='заказ',
+        on_delete=models.CASCADE
+    )
+    product = models.ForeignKey(
+        Product,
+        related_name='order_items',
+        verbose_name='товар',
+        on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(
+        verbose_name='количество',
+        default=1
+    )
+
+    class Meta:
+        verbose_name = 'элементы заказа',
+        verbose_name_plural = 'элементы заказа'
+
+    def __str__(self):
+        return f'{self.order} - {self.product.name} ({self.quantity})'

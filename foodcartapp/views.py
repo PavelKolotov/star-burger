@@ -1,8 +1,11 @@
+import json
+
 from django.http import JsonResponse
 from django.templatetags.static import static
+from django.core.exceptions import ObjectDoesNotExist
 
 
-from .models import Product
+from .models import Product, Order, OrderItem
 
 
 def banners_list_api(request):
@@ -58,5 +61,38 @@ def product_list_api(request):
 
 
 def register_order(request):
-    # TODO это лишь заглушка
-    return JsonResponse({})
+    try:
+        order_details = json.loads(request.body.decode())
+
+        order = Order.objects.create(
+            firstname=order_details['firstname'],
+            lastname=order_details['lastname'],
+            address=order_details['address'],
+            phonenumber=order_details['phonenumber'])
+
+        products = order_details['products']
+
+        for product in products:
+            product_id = product['product']
+            quantity = product['quantity']
+
+            try:
+                product_obj = Product.objects.get(id=product_id)
+            except ObjectDoesNotExist:
+                raise ValueError(f"Product with ID {product_id} does not exist")
+
+            OrderItem.objects.create(
+                order=order,
+                product=product_obj,
+                quantity=quantity
+            )
+
+        return {
+            'success': True,
+            'order_id': order.id
+        }
+    except json.JSONDecodeError as e:
+        return {'success': False, 'error': 'Invalid JSON format'}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
