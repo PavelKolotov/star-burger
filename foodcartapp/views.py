@@ -66,6 +66,11 @@ def product_list_api(request):
 def register_order(request):
     try:
         order_details = request.data
+        products = order_details['products']
+
+        if not isinstance(products, list) or not len(products):
+            return Response({'error': 'Products key not presented or not list'},
+                            status=400)
 
         order = Order.objects.create(
             firstname=order_details['firstname'],
@@ -73,7 +78,6 @@ def register_order(request):
             address=order_details['address'],
             phonenumber=order_details['phonenumber'])
 
-        products = order_details['products']
 
         for product in products:
             product_id = product['product']
@@ -94,6 +98,6 @@ def register_order(request):
     except json.JSONDecodeError as e:
         return Response({'error': 'Invalid JSON format'}, status=400)
 
-    except Exception as e:
-        return Response({'error': str(e)}, status=500)
+    except KeyError as e:
+        return Response({'error': f'KeyError {str(e)}'}, status=400)
 
