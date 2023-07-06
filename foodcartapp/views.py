@@ -1,4 +1,5 @@
 import json
+import phonenumbers
 
 from django.http import JsonResponse
 from django.templatetags.static import static
@@ -72,12 +73,17 @@ def register_order(request):
             return Response({'error': 'Products key not presented or not list'},
                             status=400)
 
-        order = Order.objects.create(
-            firstname=order_details['firstname'],
-            lastname=order_details['lastname'],
-            address=order_details['address'],
-            phonenumber=order_details['phonenumber'])
+        required_keys = ['firstname', 'lastname', 'address', 'phonenumber']
+        for key in required_keys:
+            value = order_details.get(key)
+            if not value or not isinstance(value, str):
+                return Response({'error': f'Order {key} not presented or not string'}, status=400)
 
+        parsed_number = phonenumbers.parse(order_details['phonenumber'], "RU")
+        if not phonenumbers.is_valid_number(parsed_number) \
+            and not phonenumbers.region_code_for_number(parsed_number) == "RU":
+            return Response({'error': 'Phonenumbers is not valid'},
+                            status=400)
 
         for product in products:
             product_id = product['product']
@@ -86,18 +92,25 @@ def register_order(request):
             try:
                 product_obj = Product.objects.get(id=product_id)
             except ObjectDoesNotExist:
-                raise ValueError(f"Product with ID {product_id} does not exist")
+                return Response({'error': f'Product with ID {product_id} does not exis'},
+                                status=400)
+
+            order = Order.objects.create(
+                firstname=order_details['firstname'],
+                lastname=order_details['lastname'],
+                address=order_details['address'],
+                phonenumber=order_details['phonenumber'])
 
             OrderItem.objects.create(
                 order=order,
                 product=product_obj,
                 quantity=quantity
             )
-        return Response({'message': 'Order created successfully'})
+            return Response({'message': 'Order created successfully'})
 
-    except json.JSONDecodeError as e:
-        return Response({'error': 'Invalid JSON format'}, status=400)
 
-    except KeyError as e:
-        return Response({'error': f'KeyError {str(e)}'}, status=400)
+    except (json.JSONDecodeError, KeyError) as e:
+        return Response({'error': str(e)}, status=400)
 
+    except phonenumbers.phonenumberutil.NumberParseException:
+        return Response({'error': 'Phonenumbers is not valid'}, status=400)
