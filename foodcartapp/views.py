@@ -3,6 +3,9 @@ import json
 from django.http import JsonResponse
 from django.templatetags.static import static
 from django.core.exceptions import ObjectDoesNotExist
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
 
 from .models import Product, Order, OrderItem
 
@@ -59,10 +62,11 @@ def product_list_api(request):
     })
 
 
+@api_view(['POST'])
 def register_order(request):
     try:
-        order_details = json.loads(request.body.decode())
-        print(order_details)
+        order_details = request.data
+
         order = Order.objects.create(
             firstname=order_details['firstname'],
             lastname=order_details['lastname'],
@@ -85,11 +89,11 @@ def register_order(request):
                 product=product_obj,
                 quantity=quantity
             )
-
-        return JsonResponse({'message': 'Order created successfully'})
+        return Response({'message': 'Order created successfully'})
 
     except json.JSONDecodeError as e:
-        return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+        return Response({'error': 'Invalid JSON format'}, status=400)
 
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return Response({'error': str(e)}, status=500)
+
