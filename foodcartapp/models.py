@@ -37,9 +37,6 @@ class ProductQuerySet(models.QuerySet):
         )
         return self.filter(pk__in=products)
 
-    def with_total_cost(self):
-        return self.annotate(total_cost=F('price') * F('order_items__quantity'))
-
 
 class ProductCategory(models.Model):
     name = models.CharField(
@@ -129,6 +126,12 @@ class RestaurantMenuItem(models.Model):
         return f"{self.restaurant.name} - {self.product.name}"
 
 
+class OrderQuerySet(models.QuerySet):
+
+    def with_total_cost(self):
+        return self.annotate(total_cost=Sum(F('order_items__price') * F('order_items__quantity')))
+
+
 class Order(models.Model):
     firstname = models.CharField(
         'Имя',
@@ -147,6 +150,8 @@ class Order(models.Model):
     )
     products = models.ManyToManyField(Product, through='OrderItem')
 
+    objects = OrderQuerySet.as_manager()
+
     class Meta:
         verbose_name = 'заказ'
         verbose_name_plural = 'заказы'
@@ -164,12 +169,19 @@ class OrderItem(models.Model):
     )
     product = models.ForeignKey(
         Product,
-        related_name='order_items',
+        related_name='product_items',
         verbose_name='товар',
         on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(
         verbose_name='количество',
         default=1
+    )
+    price = models.DecimalField(
+        'цена',
+        max_digits=8,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(0)]
     )
 
 
