@@ -1,13 +1,9 @@
-import json
-import phonenumbers
-
 from django.http import JsonResponse
 from django.templatetags.static import static
-from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.serializers import ModelSerializer
-from rest_framework.serializers import ValidationError
+
 
 
 from .models import Product, Order, OrderItem
@@ -20,10 +16,10 @@ class OrderItemSerializer(ModelSerializer):
 
 
 class OrderSerializer(ModelSerializer):
-    products = OrderItemSerializer(many=True, allow_empty=False)
+    products = OrderItemSerializer(many=True, allow_empty=False, write_only=True)
     class Meta:
         model = Order
-        fields = ['firstname', 'lastname', 'address', 'phonenumber', 'products']
+        fields = ['id', 'firstname', 'lastname', 'address', 'phonenumber', 'products']
 
 
 
@@ -97,5 +93,6 @@ def register_order(request):
                         quantity=product['quantity']
                     )
 
-    return Response({'message': 'Order created successfully'})
+    serialized_order = OrderSerializer(order).data
+    return Response(serialized_order)
 
