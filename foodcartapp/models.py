@@ -172,6 +172,11 @@ class Order(models.Model):
     phonenumber = PhoneNumberField(
         'контактный телефон'
     )
+    comment = models.TextField(
+        'Комментарий',
+        max_length=200,
+        blank=True
+    )
     products = models.ManyToManyField(Product, through='OrderItem')
 
     objects = OrderQuerySet.as_manager()

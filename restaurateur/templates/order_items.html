@@ -19,17 +19,19 @@
       <th>Клиент</th>
       <th>Телефон</th>
       <th>Адрес доставки</th>
+      <th>Комментарий</th>
       <th>Ссылка на админку</th>
     </tr>
 
     {% for item in order_items %}
       <tr>
         <td>{{ item.id }}</td>
-         <td>{{ item.get_status_display }}</td>
+        <td>{{ item.get_status_display }}</td>
         <td>{{ item.total_cost }} руб.</td>
         <td>{{ item.firstname|add:" "|add:item.lastname }}</td>
         <td>{{ item.phonenumber }}</td>
         <td>{{ item.address }}</td>
+        <td>{{ item.comment }}</td>
         <td><a href='{% url "admin:foodcartapp_order_change" object_id=item.id %}?next={{ request.path|urlencode }}'>Редактировать</a></td>
       </tr>
     {% endfor %}
