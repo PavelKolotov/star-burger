@@ -133,13 +133,37 @@ class OrderQuerySet(models.QuerySet):
 
 
 class Order(models.Model):
+    UNPROCESSED = 'unprocessed'
+    ACCEPTED = 'accepted'
+    RESTAURANT = 'restaurant'
+    COURIER = 'courier'
+    COMPLETED = 'completed'
+
+    STATUS_CHOICES = [
+        (UNPROCESSED, 'Необработанный'),
+        (ACCEPTED, 'Принят'),
+        (RESTAURANT, 'Передан в ресторан'),
+        (COURIER, 'Передан курьеру'),
+        (COMPLETED, 'Завершен')
+    ]
+
+    status = models.CharField(
+        'Статус',
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=UNPROCESSED,
+        db_index=True
+    )
+
     firstname = models.CharField(
         'Имя',
-        max_length=20
+        max_length=20,
+        db_index=True
     )
     lastname = models.CharField(
         'Имя',
-        max_length=20
+        max_length=20,
+        db_index=True
     )
     address = models.CharField(
         'адрес',
