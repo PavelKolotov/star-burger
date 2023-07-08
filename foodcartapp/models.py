@@ -139,6 +139,9 @@ class Order(models.Model):
     RESTAURANT = 'restaurant'
     COURIER = 'courier'
     COMPLETED = 'completed'
+    CASH = 'cash'
+    CASHLESS  = 'cashless'
+    TRANSFER = 'transfer'
 
     STATUS_CHOICES = [
         (UNPROCESSED, 'Необработанный'),
@@ -148,11 +151,25 @@ class Order(models.Model):
         (COMPLETED, 'Завершен')
     ]
 
+    PAYMENTSTATUS_CHOICES = [
+        (CASH, 'Наличный расчет'),
+        (CASHLESS, 'Безналичный расчет'),
+        (TRANSFER, 'Расчет переводом'),
+    ]
+
     status = models.CharField(
         'Статус',
         max_length=20,
         choices=STATUS_CHOICES,
         default=UNPROCESSED,
+        db_index=True
+    )
+
+    paymentstatus = models.CharField(
+        'Способ оплаты',
+        max_length=20,
+        choices=PAYMENTSTATUS_CHOICES,
+        default=CASH,
         db_index=True
     )
 
