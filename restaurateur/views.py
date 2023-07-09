@@ -3,6 +3,7 @@ from django.shortcuts import redirect, render
 from django.views import View
 from django.urls import reverse_lazy
 from django.contrib.auth.decorators import user_passes_test
+from django.db.models import Count
 
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
@@ -75,7 +76,6 @@ def view_products(request):
         products_with_restaurant_availability.append(
             (product, ordered_availability)
         )
-
     return render(request, template_name="products_list.html", context={
         'products_with_restaurant_availability': products_with_restaurant_availability,
         'restaurants': restaurants,
@@ -91,8 +91,25 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
-    orders = Order.objects.exclude(status='completed').prefetch_related('order_items__product')
-    orders_with_total_cost = orders.with_total_cost()
+    orders_with_total_cost = []
+
+    orders = Order.objects.exclude(status=4).prefetch_related('order_items__product').with_total_cost().order_by('status')
+
+    for order in orders:
+        order_items = {}
+        order_items['order'] = order
+
+        products = order.products.all()
+
+        available_restaurants = Restaurant.objects.filter(
+            menu_items__product__in=products,
+            menu_items__availability=True
+        ).annotate(num_available_products=Count('menu_items__product')).filter(
+            num_available_products=len(products)
+        )
+
+        order_items.update({'restaurants': available_restaurants})
+        orders_with_total_cost.append(order_items)
 
     return render(request, template_name='order_items.html', context={
         'order_items': orders_with_total_cost,

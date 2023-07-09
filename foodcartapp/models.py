@@ -134,42 +134,34 @@ class OrderQuerySet(models.QuerySet):
 
 
 class Order(models.Model):
-    UNPROCESSED = 'unprocessed'
-    ACCEPTED = 'accepted'
-    RESTAURANT = 'restaurant'
-    COURIER = 'courier'
-    COMPLETED = 'completed'
-    CASH = 'cash'
-    CASHLESS  = 'cashless'
-    TRANSFER = 'transfer'
 
     STATUS_CHOICES = [
-        (UNPROCESSED, 'Необработанный'),
-        (ACCEPTED, 'Принят'),
-        (RESTAURANT, 'Передан в ресторан'),
-        (COURIER, 'Передан курьеру'),
-        (COMPLETED, 'Завершен')
+        (0, 'Необработанный'),
+        (1, 'Принят'),
+        (2, 'Передан в ресторан'),
+        (3, 'Передан курьеру'),
+        (4, 'Завершен')
     ]
 
     PAYMENTSTATUS_CHOICES = [
-        (CASH, 'Наличный расчет'),
-        (CASHLESS, 'Безналичный расчет'),
-        (TRANSFER, 'Расчет переводом'),
+        (0, 'Наличный расчет'),
+        (1, 'Безналичный расчет'),
+        (2, 'Расчет переводом'),
     ]
 
-    status = models.CharField(
+    status = models.IntegerField(
         'Статус',
         max_length=20,
         choices=STATUS_CHOICES,
-        default=UNPROCESSED,
+        default=0,
         db_index=True
     )
 
-    paymentstatus = models.CharField(
+    paymentstatus = models.IntegerField(
         'Способ оплаты',
         max_length=20,
         choices=PAYMENTSTATUS_CHOICES,
-        default=CASH,
+        default=0,
         db_index=True
     )
 
@@ -195,6 +187,14 @@ class Order(models.Model):
         max_length=200,
         blank=True
     )
+    restaurant = models.ForeignKey(
+        Restaurant,
+        verbose_name='Ресторан',
+        related_name='restaurants',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
     created_at = models.DateTimeField(
         'Время создания заказа',
         default=timezone.now,
@@ -216,6 +216,7 @@ class Order(models.Model):
 
     objects = OrderQuerySet.as_manager()
 
+
     class Meta:
         verbose_name = 'заказ'
         verbose_name_plural = 'заказы'
@@ -235,7 +236,8 @@ class OrderItem(models.Model):
         Product,
         related_name='product_items',
         verbose_name='товар',
-        on_delete=models.CASCADE)
+        on_delete=models.CASCADE
+    )
     quantity = models.PositiveIntegerField(
         verbose_name='количество',
         default=1
