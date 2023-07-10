@@ -1,3 +1,5 @@
+import requests
+
 from django import forms
 from django.shortcuts import redirect, render
 from django.views import View
@@ -9,6 +11,15 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 
 from foodcartapp.models import Product, Restaurant, Order
+
+from geopy import distance
+from environs import Env
+
+
+env = Env()
+env.read_env()
+
+yandex_geocoder_api_key =env.str('YANDEX_GEOCODER_API_KEY')
 
 
 class Login(forms.Form):
@@ -63,6 +74,24 @@ def is_manager(user):
     return user.is_staff  # FIXME replace with specific permission
 
 
+def fetch_coordinates(apikey, address):
+    base_url = "https://geocode-maps.yandex.ru/1.x"
+    response = requests.get(base_url, params={
+        "geocode": address,
+        "apikey": apikey,
+        "format": "json",
+    })
+    response.raise_for_status()
+    found_places = response.json()['response']['GeoObjectCollection']['featureMember']
+
+    if not found_places:
+        return None
+
+    most_relevant = found_places[0]
+    lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")
+    return lon, lat
+
+
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_products(request):
     restaurants = list(Restaurant.objects.order_by('name'))
@@ -93,10 +122,12 @@ def view_restaurants(request):
 def view_orders(request):
     orders_with_total_cost = []
 
-    orders = Order.objects.exclude(status=4).prefetch_related('order_items__product').with_total_cost().order_by('status')
+    orders = Order.objects.exclude(status=4).prefetch_related('order_items__product').with_total_cost().order_by(
+        'status')
 
     for order in orders:
         order_items = {}
+        restaurants = []
         order_items['order'] = order
 
         products = order.products.all()
@@ -108,7 +139,17 @@ def view_orders(request):
             num_available_products=len(products)
         )
 
-        order_items.update({'restaurants': available_restaurants})
+        for restaurant in available_restaurants:
+            client_address = fetch_coordinates(yandex_geocoder_api_key, order.address)
+            restaurant_address = fetch_coordinates(yandex_geocoder_api_key, restaurant.address)
+
+            if client_address:
+                distance_km = round(distance.distance(client_address[::-1], restaurant_address[::-1]).km, 2)
+            else:
+                distance_km = 'Неправильно указан адрес, None'
+            restaurants.append({'restaurant': restaurant, 'distance': distance_km})
+
+        order_items['restaurants'] = restaurants
         orders_with_total_cost.append(order_items)
 
     return render(request, template_name='order_items.html', context={
