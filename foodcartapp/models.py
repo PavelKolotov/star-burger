@@ -151,7 +151,6 @@ class Order(models.Model):
 
     status = models.IntegerField(
         'Статус',
-        max_length=20,
         choices=STATUS_CHOICES,
         default=0,
         db_index=True
@@ -159,7 +158,6 @@ class Order(models.Model):
 
     paymentstatus = models.IntegerField(
         'Способ оплаты',
-        max_length=20,
         choices=PAYMENTSTATUS_CHOICES,
         default=0,
         db_index=True

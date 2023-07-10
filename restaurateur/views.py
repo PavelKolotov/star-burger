@@ -1,19 +1,20 @@
+from datetime import date
+
 import requests
-
 from django import forms
-from django.shortcuts import redirect, render
-from django.views import View
-from django.urls import reverse_lazy
-from django.contrib.auth.decorators import user_passes_test
-from django.db.models import Count
-
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
-
-from foodcartapp.models import Product, Restaurant, Order
+from django.contrib.auth.decorators import user_passes_test
+from django.db.models import Count
+from django.shortcuts import redirect, render
+from django.urls import reverse_lazy
+from django.views import View
 
 from geopy import distance
 from environs import Env
+
+from foodcartapp.models import Product, Restaurant, Order
+from place.models import Place
 
 
 env = Env()
@@ -140,11 +141,37 @@ def view_orders(request):
         )
 
         for restaurant in available_restaurants:
-            client_address = fetch_coordinates(yandex_geocoder_api_key, order.address)
-            restaurant_address = fetch_coordinates(yandex_geocoder_api_key, restaurant.address)
+            restaurant_address = restaurant.address
+            restaurant_place = Place.objects.filter(address=restaurant_address)
 
-            if client_address:
-                distance_km = round(distance.distance(client_address[::-1], restaurant_address[::-1]).km, 2)
+            if not restaurant_place:
+                restaurant_coordinates = fetch_coordinates(yandex_geocoder_api_key, restaurant_address)
+                Place.objects.create(
+                    address=restaurant_address,
+                    lat=restaurant_coordinates[1],
+                    lon=restaurant_coordinates[0],
+                )
+            else:
+                restaurant_coordinates = [restaurant_place[0].lon, restaurant_place[0].lat]
+
+            client_address = order.address
+            client_place = Place.objects.filter(address=client_address)
+
+            if not client_place:
+                client_coordinates = fetch_coordinates(yandex_geocoder_api_key, client_address)
+                if client_coordinates:
+                    Place.objects.create(
+                        address=client_address,
+                        lat=client_coordinates[1],
+                        lon=client_coordinates[0],
+                    )
+                else:
+                    client_coordinates = None
+            else:
+                client_coordinates = [client_place[0].lon, client_place[0].lat]
+
+            if client_coordinates:
+                distance_km = round(distance.distance(client_coordinates[::-1], restaurant_coordinates[::-1]).km, 2)
             else:
                 distance_km = 'Неправильно указан адрес, None'
             restaurants.append({'restaurant': restaurant, 'distance': distance_km})
