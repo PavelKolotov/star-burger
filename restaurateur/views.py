@@ -1,5 +1,3 @@
-from datetime import date
-
 import requests
 from django import forms
 from django.contrib.auth import authenticate, login
@@ -19,8 +17,6 @@ from place.models import Place
 
 env = Env()
 env.read_env()
-
-yandex_geocoder_api_key =env.str('YANDEX_GEOCODER_API_KEY')
 
 
 class Login(forms.Form):
@@ -122,7 +118,7 @@ def view_restaurants(request):
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
     orders_with_total_cost = []
-
+    yandex_geocoder_api_key = env.str('YANDEX_GEOCODER_API_KEY')
     orders = Order.objects.exclude(status=4).prefetch_related('order_items__product').with_total_cost().order_by(
         'status')
 
