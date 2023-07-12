@@ -1,17 +1,19 @@
 import requests
+
+from itertools import chain
 from django import forms
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import user_passes_test
-from django.db.models import Count
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.views import View
 
+
 from geopy import distance
 from environs import Env
 
-from foodcartapp.models import Product, Restaurant, Order
+from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem
 from place.models import Place
 
 
@@ -70,6 +72,19 @@ class LogoutView(auth_views.LogoutView):
 def is_manager(user):
     return user.is_staff  # FIXME replace with specific permission
 
+def get_or_create_place(list_address, obj_place):
+    yandex_geocoder_api_key = env.str('YANDEX_GEOCODER_API_KEY')
+    place_address = [address.address for address in obj_place]
+    for address in list_address:
+        if not address in place_address:
+            coordinates = fetch_coordinates(yandex_geocoder_api_key, address)
+            if coordinates:
+                Place.objects.create(
+                    address=address,
+                    lat=coordinates[1],
+                    lon=coordinates[0],
+                )
+
 
 def fetch_coordinates(apikey, address):
     base_url = "https://geocode-maps.yandex.ru/1.x"
@@ -117,64 +132,74 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
+    # находим все заказы исключая статус 4, 'Завершен'
     orders_with_total_cost = []
-    yandex_geocoder_api_key = env.str('YANDEX_GEOCODER_API_KEY')
-    orders = Order.objects.exclude(status=4).prefetch_related('order_items__product').with_total_cost().order_by(
-        'status')
+    orders = Order.objects.all().prefetch_related('products').exclude(status=4).with_total_cost().order_by('status')
 
-    for order in orders:
-        order_items = {}
-        restaurants = []
-        order_items['order'] = order
+    # находим какие продукты делают  рестораны
+    restaurant_menu_items_payload = {}
+    restaurant_menu_items = RestaurantMenuItem.objects.filter(availability=True)\
+        .values_list('restaurant__name', 'product')
+    [restaurant_menu_items_payload.setdefault(key, []).append(value) for key, value in list(restaurant_menu_items)]
 
-        products = order.products.all()
+    # находим продукты в каждом заказе
+    order_products = {order.id: [product.id for product in order.products.all()] for order in orders}
 
-        available_restaurants = Restaurant.objects.filter(
-            menu_items__product__in=products,
-            menu_items__availability=True
-        ).annotate(num_available_products=Count('menu_items__product')).filter(
-            num_available_products=len(products)
-        )
+    # находим какие рестораны смогут выполнить заказ
+    available_restaurants = {ord_key: [rest_key for rest_key, rest_list in restaurant_menu_items_payload.items()
+              if set(ord_list).issubset(set(rest_list))] for
+              ord_key, ord_list in order_products.items()}
 
-        for restaurant in available_restaurants:
-            restaurant_address = restaurant.address
-            restaurant_place = Place.objects.filter(address=restaurant_address)
+    # находим все рестораны и их адреса
+    all_restaurant = {}
+    [all_restaurant.setdefault(key, value) for key, value in Restaurant.objects.all().values_list('name', 'address')]
+    restaurant_address = list(all_restaurant.values())
 
-            if not restaurant_place:
-                restaurant_coordinates = fetch_coordinates(yandex_geocoder_api_key, restaurant_address)
-                Place.objects.create(
-                    address=restaurant_address,
-                    lat=restaurant_coordinates[1],
-                    lon=restaurant_coordinates[0],
-                )
-            else:
-                restaurant_coordinates = [restaurant_place[0].lon, restaurant_place[0].lat]
+    # находим все адреса заказов
+    address = [address for address in orders.values_list('address')]
+    order_address = list(chain.from_iterable(address))
 
-            client_address = order.address
-            client_place = Place.objects.filter(address=client_address)
+    # объединяем адреса, проверяем и записываем координаты адресов в модель Place
+    all_address = restaurant_address + order_address
+    obj_places = Place.objects.all()
+    get_or_create_place(all_address, obj_places)
 
-            if not client_place:
-                client_coordinates = fetch_coordinates(yandex_geocoder_api_key, client_address)
-                if client_coordinates:
-                    Place.objects.create(
-                        address=client_address,
-                        lat=client_coordinates[1],
-                        lon=client_coordinates[0],
-                    )
-                else:
-                    client_coordinates = None
-            else:
-                client_coordinates = [client_place[0].lon, client_place[0].lat]
+    # добавляем в список рестораны ктр. могут приготовить продукты
+    for index, key in enumerate(available_restaurants):
+        order_payload = {
+            'order': orders[index],
+            'restaurants': available_restaurants[key]
+        }
+        orders_with_total_cost.append(order_payload)
 
-            if client_coordinates:
-                distance_km = round(distance.distance(client_coordinates[::-1], restaurant_coordinates[::-1]).km, 2)
-            else:
-                distance_km = 'Неправильно указан адрес, None'
-            restaurants.append({'restaurant': restaurant, 'distance': distance_km})
+    # находим все места по адресам указанным в текущих заказах
+    places = Place.objects.filter(address__in=all_address)
+    # создаем словарь для быстрого доступа к объектам Place по адресу
+    place_dict = {place.address: place for place in places}
 
-        order_items['restaurants'] = restaurants
-        orders_with_total_cost.append(order_items)
+    # вычисляем дистанцию от каждого ресторана ктр. может доставить продукцию до адреса доставки
+    all_distance = []
+    for order in orders_with_total_cost:
+        client_address = order['order'].address
+        client_place = place_dict.get(client_address)
+        if client_place:
+            delivery_distance = []
+            for restaurant in order['restaurants']:
+                restaurant_address = all_restaurant.get(restaurant)
+                restaurant_place = place_dict.get(restaurant_address)
+                client_coordinates = [client_place.lat, client_place.lon]
+                restaurant_coordinates = [client_place.lat, restaurant_place.lon]
+                distance_km = round(distance.distance(client_coordinates, restaurant_coordinates).km, 2)
+                delivery_distance.append((f'{restaurant} - {distance_km} км.'))
+            all_distance.append(delivery_distance)
+        else:
+            all_distance.append(['Неправильно указан адрес'])
+
+    # добавляем в список дистанцию доставки
+    for index, order in enumerate(orders_with_total_cost):
+        orders_with_total_cost[index]['distance'] = all_distance[index]
 
     return render(request, template_name='order_items.html', context={
         'order_items': orders_with_total_cost,
     })
+

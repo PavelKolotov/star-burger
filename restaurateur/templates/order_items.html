@@ -24,8 +24,7 @@
       <th>Рестораны</th>
       <th>Ссылка на админку</th>
     </tr>
-
-    {% for item in order_items %}
+      {% for item in order_items %}
       <tr>
         <td>{{ item.order.id }}</td>
         <td>{{ item.order.get_status_display }}</td>
@@ -43,18 +42,19 @@
             {% elif not item.restaurants %}
             Данный заказ не сможет приготовить ни один ресторан
             {% else %}
-            Может быть приготовлен ресторанами:
-            {% for item in item.restaurants %}
+            {% for item in item.distance %}
             <ul>
-              <li>{{ item.restaurant }} - {{ item.distance }} км.</li>
+              <li>{{ item}}</li>
             </ul>
             {% endfor %}
             {% endif %}
           </details>
         </td>
-        <td><a href='{% url "admin:foodcartapp_order_change" object_id=item.order.id %}?next={{ request.path|urlencode }}'>Редактировать</a></td>
+        <td><a
+          href='{% url "admin:foodcartapp_order_change" object_id=item.order.id %}?next={{ request.path|urlencode }}'>Редактировать</a>
+        </td>
       </tr>
-    {% endfor %}
+      {% endfor %}
    </table>
   </div>
 {% endblock %}
