@@ -124,8 +124,6 @@ class OrderAdmin(admin.ModelAdmin):
         for obj in formset.deleted_objects:
             obj.delete()
         for instance in instances:
-
-            print(instance)
             if not instance.price:  # Обновляем только если цена не задана
                 instance.price = instance.product.price
             instance.save()
