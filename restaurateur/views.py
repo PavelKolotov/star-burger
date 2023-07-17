@@ -134,12 +134,11 @@ def view_restaurants(request):
 def view_orders(request):
     # находим все заказы исключая статус 4, 'Завершен'
     orders_with_total_cost = []
-    orders = Order.objects.all().prefetch_related('products').exclude(status=4).with_total_cost().order_by('status')
+    orders = Order.objects.get_orders()
 
     # находим какие продукты делают  рестораны
     restaurant_menu_items_payload = {}
-    restaurant_menu_items = RestaurantMenuItem.objects.filter(availability=True)\
-        .values_list('restaurant__name', 'product')
+    restaurant_menu_items = RestaurantMenuItem.objects.get_available_items()
     [restaurant_menu_items_payload.setdefault(key, []).append(value) for key, value in list(restaurant_menu_items)]
 
     # находим продукты в каждом заказе
