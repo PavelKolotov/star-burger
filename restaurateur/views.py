@@ -139,7 +139,7 @@ def view_orders(request):
     # находим какие продукты делают  рестораны
     restaurant_menu_items_payload = {}
     restaurant_menu_items = RestaurantMenuItem.objects.get_available_items()
-    [restaurant_menu_items_payload.setdefault(key, []).append(value) for key, value in list(restaurant_menu_items)]
+    [restaurant_menu_items_payload.setdefault(key, []).append(value) for key, value in restaurant_menu_items]
 
     # находим продукты в каждом заказе
     order_products = {order.id: [product.id for product in order.products.all()] for order in orders}
