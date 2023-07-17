@@ -156,6 +156,7 @@ class Order(models.Model):
         (0, 'Наличный расчет'),
         (1, 'Безналичный расчет'),
         (2, 'Расчет переводом'),
+        (3, 'Не указан')
     ]
 
     status = models.IntegerField(
@@ -168,7 +169,7 @@ class Order(models.Model):
     paymentstatus = models.IntegerField(
         'Способ оплаты',
         choices=PAYMENTSTATUS_CHOICES,
-        default=0,
+        default=3,
         db_index=True
     )
 
