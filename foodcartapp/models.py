@@ -166,7 +166,7 @@ class Order(models.Model):
         db_index=True
     )
 
-    paymentstatus = models.IntegerField(
+    payment_method = models.IntegerField(
         'Способ оплаты',
         choices=PAYMENTSTATUS_CHOICES,
         default=3,
