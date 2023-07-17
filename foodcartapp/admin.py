@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import admin
 from django.shortcuts import reverse
 from django.templatetags.static import static
@@ -130,9 +131,10 @@ class OrderAdmin(admin.ModelAdmin):
         formset.save_m2m()
 
     def response_change(self, request, obj):
+
         res = super().response_post_save_change(request, obj)
         url = request.GET.get('next')
-        allowed_hosts = ['127.0.0.1:8000']
+        allowed_hosts = settings.ALLOWED_HOSTS
         allowed_schemes = ['http', 'https']
 
         if url_has_allowed_host_and_scheme(url, allowed_hosts, allowed_schemes):

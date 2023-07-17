@@ -3,7 +3,6 @@ from django.core.validators import MinValueValidator
 from phonenumber_field.modelfields import PhoneNumberField
 from django.db.models import F, Sum
 from django.utils import timezone
-from place.models import Place
 
 
 class Restaurant(models.Model):

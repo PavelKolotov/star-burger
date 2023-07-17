@@ -3,25 +3,9 @@ from django.templatetags.static import static
 from django.db import transaction
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework.serializers import ModelSerializer
 
-
-
+from .serializers import OrderSerializer
 from .models import Product, Order, OrderItem
-
-
-class OrderItemSerializer(ModelSerializer):
-    class Meta:
-        model = OrderItem
-        fields = ['product', 'quantity']
-
-
-class OrderSerializer(ModelSerializer):
-    products = OrderItemSerializer(many=True, allow_empty=False, write_only=True)
-    class Meta:
-        model = Order
-        fields = ['id', 'firstname', 'lastname', 'address', 'phonenumber', 'products']
-
 
 
 def banners_list_api(request):
@@ -82,19 +66,7 @@ def register_order(request):
     serializer = OrderSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    order = Order.objects.create(
-        firstname=serializer.validated_data['firstname'],
-        lastname=serializer.validated_data['lastname'],
-        address=serializer.validated_data['address'],
-        phonenumber=serializer.validated_data['phonenumber'])
-
-    for product in serializer.validated_data['products']:
-        OrderItem.objects.create(
-                        order=order,
-                        product=product['product'],
-                        quantity=product['quantity'],
-                        price=product['product'].price
-                    )
+    order = serializer.save()
     serialized_order = OrderSerializer(order).data
     return Response(serialized_order)
 
