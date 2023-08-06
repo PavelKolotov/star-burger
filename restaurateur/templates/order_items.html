@@ -3,15 +3,15 @@
 {% block title %}Необработанные заказы | Star Burger{% endblock %}
 
 {% block content %}
-  <center>
-    <h2>Необработанные заказы</h2>
-  </center>
+<center>
+  <h2>Необработанные заказы</h2>
+</center>
 
-  <hr/>
-  <br/>
-  <br/>
-  <div class="container">
-   <table class="table table-responsive">
+<hr/>
+<br/>
+<br/>
+<div class="container">
+  <table class="table table-responsive">
     <tr>
       <th>ID заказа</th>
       <th>Статус</th>
@@ -24,37 +24,37 @@
       <th>Рестораны</th>
       <th>Ссылка на админку</th>
     </tr>
-      {% for item in order_items %}
-      <tr>
-        <td>{{ item.order.id }}</td>
-        <td>{{ item.order.get_status_display }}</td>
-        <td>{{ item.order.get_paymentstatus_display }}</td>
-        <td>{{ item.order.total_cost }} руб.</td>
-        <td>{{ item.order.firstname|add:" "|add:item.order.lastname }}</td>
-        <td>{{ item.order.phonenumber }}</td>
-        <td>{{ item.order.address }}</td>
-        <td>{{ item.order.comment }}</td>
-        <td>
-          <details>
-            <summary>Информация о ресторанах:</summary>
-            {% if item.order.restaurant %}
-            Готовит {{ item.order.restaurant }}
-            {% elif not item.restaurants %}
-            Данный заказ не сможет приготовить ни один ресторан
-            {% else %}
-            {% for item in item.distance %}
+    {% for item in order_items %}
+    <tr>
+      <td>{{ item.id }}</td>
+      <td>{{ item.status }}</td>
+      <td>{{ item.payment_method }}</td>
+      <td>{{ item.cost }} руб.</td>
+      <td>{{ item.client }}</td>
+      <td>{{ item.phone }}</td>
+      <td>{{ item.address }}</td>
+      <td>{{ item.comment }}</td>
+      <td>
+        <details>
+          <summary>Информация о ресторанах:</summary>
+          {% if item.restaurant %}
+          Готовит {{ item.restaurant }}
+          {% elif item.distance %}
+          {% for restaurant, distance in item.distance %}
             <ul>
-              <li>{{ item}}</li>
+              <li>{{ restaurant|add:" - "|add:distance }}</li>
             </ul>
-            {% endfor %}
-            {% endif %}
-          </details>
-        </td>
-        <td><a
-          href='{% url "admin:foodcartapp_order_change" object_id=item.order.id %}?next={{ request.path|urlencode }}'>Редактировать</a>
-        </td>
-      </tr>
-      {% endfor %}
-   </table>
-  </div>
+          {% endfor %}
+          {% else %}
+          К сожалению, ни один из ресторанов не сможет выполнить ваш заказ
+          {% endif %}
+        </details>
+      </td>
+      <td><a
+        href='{% url "admin:foodcartapp_order_change" object_id=item.id %}?next={{ request.path|urlencode }}'>Редактировать</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
 {% endblock %}

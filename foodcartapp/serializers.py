@@ -16,7 +16,6 @@ class OrderSerializer(ModelSerializer):
     products = OrderItemSerializer(many=True, allow_empty=False, write_only=True)
 
     def create(self, validated_data):
-        print(validated_data)
         products = validated_data.pop('products')
         order = Order.objects.create(**validated_data)
 

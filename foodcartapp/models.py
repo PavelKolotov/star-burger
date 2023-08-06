@@ -99,7 +99,7 @@ class Product(models.Model):
 
 class RestaurantMenuItemQuerySet(models.QuerySet):
     def get_available_items(self):
-        return self.filter(availability=True).values_list('restaurant__name', 'product')
+        return self.filter(availability=True).select_related('restaurant', 'product')
 
 
 class RestaurantMenuItem(models.Model):
@@ -152,7 +152,7 @@ class Order(models.Model):
         (4, 'Завершен')
     ]
 
-    PAYMENTSTATUS_CHOICES = [
+    PAYMENT_METHOD_CHOICES = [
         (0, 'Наличный расчет'),
         (1, 'Безналичный расчет'),
         (2, 'Расчет переводом'),
@@ -168,7 +168,7 @@ class Order(models.Model):
 
     payment_method = models.IntegerField(
         'Способ оплаты',
-        choices=PAYMENTSTATUS_CHOICES,
+        choices=PAYMENT_METHOD_CHOICES,
         default=3,
         db_index=True
     )
@@ -257,7 +257,7 @@ class OrderItem(models.Model):
         'цена',
         max_digits=8,
         decimal_places=2,
-        default=0,
+        blank=True,
         validators=[MinValueValidator(0)]
     )
 
