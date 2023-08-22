@@ -101,7 +101,6 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
-
     orders_with_total_cost = []
     orders = Order.objects.get_orders()
     restaurant_menu_items = RestaurantMenuItem.objects.get_available_items()
