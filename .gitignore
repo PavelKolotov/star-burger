@@ -146,3 +146,4 @@ cython_debug/
 r.txt
 test.py
 test2.py
+datadump.json
