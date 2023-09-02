@@ -1,6 +1,6 @@
 # Сайт доставки еды Star Burger
 
-Это сайт сети ресторанов Star Burger. Здесь можно заказать превосходные бургеры с доставкой на дом.
+Это сайт сети ресторанов [Star Burger](https://star-burger.universal-web.online/). Здесь можно заказать превосходные бургеры с доставкой на дом.
 
 ![скриншот сайта](https://dvmn.org/filer/canonical/1594651635/686/)
 
@@ -153,6 +153,7 @@ Parcel будет следить за файлами в каталоге `bundle
 - `ALLOWED_HOSTS` — [см. документацию Django](https://docs.djangoproject.com/en/3.1/ref/settings/#allowed-hosts)
 - `ROLLBAR_ACCESS_TOKEN` — ваш ключ от [Rollbar](https://rollbar.com/)
 - `ROLLBAR_ENVIRONMENT` — настройка environment в Rollbar задаёт название окружения или инсталляции сайта.
+- `DB_URL` - параметры подключения к БД в формате URL (postgres://<пользователь>:<пароль>@<хост>:<порт>/<имя_базы_данных>)
 
 ## Цели проекта
 
